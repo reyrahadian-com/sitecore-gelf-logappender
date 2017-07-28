@@ -77,7 +77,7 @@ namespace ScGraylog.Layout
 		private void AddAdditionalFields(LoggingEvent loggingEvent, GelfMessage gelfMessage)
 		{
 			var dictionary = ParseField(AdditionalFields) ?? new Dictionary<string, object>();
-			foreach (DictionaryEntry property in (IEnumerable) loggingEvent.ToDictionary())
+			foreach (DictionaryEntry property in loggingEvent.Properties.ToDictionary())
 			{
 				var key = property.Key as string;
 				if (key != null && !key.StartsWith("log4net:"))
@@ -96,37 +96,28 @@ namespace ScGraylog.Layout
 
 		private Dictionary<string, object> ParseField(string value)
 		{
-			var dictionary = new Dictionary<string, object>();
+			var innerAdditionalFields = new Dictionary<string, object>();
+
 			if (value != null)
 			{
-				string[] strArray;
+				string[] fields;
 				if (!string.IsNullOrEmpty(FieldSeparator))
-					strArray = value.Split(new string[1]
-					{
-						FieldSeparator
-					}, StringSplitOptions.RemoveEmptyEntries);
+					fields = value.Split(new[] {FieldSeparator}, StringSplitOptions.RemoveEmptyEntries);
 				else
-					strArray = value.Split(',');
+					fields = value.Split(',');
+
 				if (!string.IsNullOrEmpty(KeyValueSeparator))
-				{
-					var source = strArray.Select(it => it.Split(new string[1]
-					{
-						KeyValueSeparator
-					}, StringSplitOptions.RemoveEmptyEntries));
-					Func<string[], string> func = it => it[0];
-					Func<string[], string> keySelector;
-					dictionary = source.ToDictionary(keySelector, it => (object) it[1]);
-				}
+					innerAdditionalFields = fields
+						.Select(it => it.Split(new[] {KeyValueSeparator}, StringSplitOptions.RemoveEmptyEntries))
+						.ToDictionary(it => it[0], it => (object) it[1]);
 				else
-				{
-					var source = strArray.Select(it => it.Split(':'));
-					Func<string[], string> func = it => it[0];
-					Func<string[], string> keySelector;
-					dictionary = source.ToDictionary(x=>x, it => (object) it[1]);
-				}
+					innerAdditionalFields = fields
+						.Select(it => it.Split(':'))
+						.ToDictionary(it => it[0], it => (object) it[1]);
 			}
-			return dictionary;
+			return innerAdditionalFields;
 		}
+
 
 		private void AddLoggingEventToMessage(LoggingEvent loggingEvent, GelfMessage gelfMessage)
 		{
@@ -230,7 +221,7 @@ namespace ScGraylog.Layout
 				Level = GetSyslogSeverity(loggingEvent.Level),
 				Line = string.Empty,
 				TimeStamp = loggingEvent.TimeStamp,
-				Version = "1.0"
+				Version = "1.1"
 			};
 			gelfMessage.Add("LoggerName", loggingEvent.LoggerName);
 			if (IncludeLocationInformation)

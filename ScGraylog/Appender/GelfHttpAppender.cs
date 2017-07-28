@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
@@ -13,10 +12,6 @@ namespace ScGraylog.Appender
 		private readonly HttpClient _httpClient;
 		private Uri _baseUrl;
 
-		public string Url { get; set; }
-		public string User { get; set; }
-		public string Password { get; set; }
-
 		public GelfHttpAppender()
 		{
 			//var httpClientHandler = new HttpClientHandler
@@ -28,6 +23,10 @@ namespace ScGraylog.Appender
 			_httpClient = new HttpClient();
 		}
 
+		public string Url { get; set; }
+		public string User { get; set; }
+		public string Password { get; set; }
+
 		public override void ActivateOptions()
 		{
 			base.ActivateOptions();
@@ -35,7 +34,8 @@ namespace ScGraylog.Appender
 			_httpClient.DefaultRequestHeaders.ExpectContinue = false;
 			if (string.IsNullOrWhiteSpace(User) || string.IsNullOrWhiteSpace(Password))
 				return;
-			_httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(Encoding.ASCII.GetBytes(User + ":" + Password)));
+			_httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic",
+				Convert.ToBase64String(Encoding.ASCII.GetBytes(User + ":" + Password)));
 		}
 
 		protected override void Append(LoggingEvent loggingEvent)
